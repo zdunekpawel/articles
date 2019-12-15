@@ -1,0 +1,58 @@
+tpch playground in Oracle
+step by step guide for setting up tpc-h schema in oracle VM 
+
+1. Download tpc-h tools from here: http://www.tpc.org/tpc_documents_current_versions/current_specifications5.asp
+2. put it on your linux and unzip
+3. Build dbgen:
+	-> $ cp makefile.suite makefile # copying makefile template 
+	-> $ nano makefile # some fields have to be updated 
+		now update makefile: 
+		find CHANGE NAME OF ANSI COMPILER HERE  section and update:
+			CC = gcc
+			DATABASE = ORACLE
+			MACHINE = LINUX
+			WORKLOAD = TPCH 
+		save and exit nano 
+	-> $ make # build dbgen 
+4. use dbgen to download datasets, for example 4GB in 2 chunks:
+	$ ./dbgen -s 4 -S 1 -C 2 -v
+	$ ./dbgen -s 4 -S 2 -C 2 -v
+5. check if indeed you have ~4gb of data:
+	$ du -ch *.tbl* | grep total 
+
+6. run sql utility:
+	ssh oracle@localhost -p 2200 # my conn. to oracle dev. vm
+	cd /u01/userhome/bin
+	sql
+	login as system / oracle 
+8. do following:
+	create tablespace tpch_ts2 datafile 'tpch_ts2.dbf'  size 100m autoextend on next 100m nologging;
+	create user tpch2 identified by tpch2 temporary tablespace temp default tablespace tpch_ts2 ;
+	grant connect,resource to tpch2;
+	grant create any directory to tpch2;
+	conn tpch2/tpch2
+	create directory tpch_dir2 as '/u01/userhome/oracle/mytpch/2.18.0_rc2/dbgen';
+	
+10. execute tpch_create_tables.sql
+	 to run .sql scripts through sql utility following syntax applies:  
+	 	@/path_to_your_sql_file/file.sql
+
+11. check if all tables were created with 
+	SELECT OBJECT_NAME FROM ALL_OBJECTS WHERE OBJECT_TYPE='TABLE' AND OWNER='TPCH';
+	check your username if you need to with 
+		SELECT USER FROM DUAL; 
+12. check counts of tables:
+13.execute below scripts:
+	persistent_objects_tpch.sql
+	load_data.sql
+	build_constraints_tpch.sql
+	to load data you might need to execute GRANT UNLIMITED TABLESPACE TO tpch2; as a system user 
+14. you might want to rename tables like that:
+	RENAME TABLE H_LINEITEM TO LINEITEM;
+
+
+
+
+
+
+
